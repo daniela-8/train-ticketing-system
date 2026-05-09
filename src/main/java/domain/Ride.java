@@ -1,4 +1,5 @@
 package domain;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -8,14 +9,16 @@ public class Ride implements Entity<Long> {
     private Long id;
     private Train train;
     private Route route;
-    private List<RideStop> stops = new ArrayList<>();
     private List<RideSegment> segments = new ArrayList<>();
-    private int delayMinutes = 0;
+    private int delayMinutes;
 
-    public Ride(Long id, Train train, Route route, int delayMinutes) {
+    public Ride(Long id, Train train, Route route, List<RideSegment> segments, int delayMinutes) {
         this.id = id;
         this.train = train;
         this.route = route;
+        if (segments != null) {
+            this.segments = segments;
+        }
         this.delayMinutes = delayMinutes;
     }
 
@@ -30,17 +33,8 @@ public class Ride implements Entity<Long> {
     public Route getRoute() { return route; }
     public void setRoute(Route route) { this.route = route; }
 
-    public List<RideStop> getStop() {
-        return Collections.unmodifiableList(stops);
-    }
-
-    public void addStop(RideStop stop) {
-        this.stops.add(stop);
-    }
-
-    public void removeStop(RideStop stop) {
-        this.stops.remove(stop);
-    }
+    public int getDelayMinutes() { return delayMinutes; }
+    public void setDelayMinutes(int delayMinutes) { this.delayMinutes = delayMinutes; }
 
     public List<RideSegment> getSegments() {
         return Collections.unmodifiableList(segments);
@@ -53,9 +47,6 @@ public class Ride implements Entity<Long> {
     public void removeSegment(RideSegment segment) {
         this.segments.remove(segment);
     }
-
-    public int getDelayMinutes() { return delayMinutes; }
-    public void setDelayMinutes(int delayMinutes) { this.delayMinutes = delayMinutes; }
 
     @Override
     public boolean equals(Object o) {
