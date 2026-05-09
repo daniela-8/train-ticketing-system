@@ -20,8 +20,8 @@ public class RideRepository implements IRideRepository {
 
     @Override
     public Ride save(Ride entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement(
                 "INSERT INTO Rides (train_id, route_id, delay_minutes) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setLong(1, entity.getTrain().getId());
             preStmt.setLong(2, entity.getRoute().getId());

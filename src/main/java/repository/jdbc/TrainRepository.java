@@ -17,8 +17,8 @@ public class TrainRepository implements ITrainRepository {
 
     @Override
     public Train save(Train entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement(
                 "INSERT INTO Trains (name, total_capacity) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setString(1, entity.getName());
             preStmt.setInt(2, entity.getTotalCapacity());

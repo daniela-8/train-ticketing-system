@@ -17,8 +17,8 @@ public class RouteRepository implements IRouteRepository {
 
     @Override
     public Route save(Route entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement("INSERT INTO Routes (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement("INSERT INTO Routes (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setString(1, entity.getName());
             preStmt.executeUpdate();
             try (ResultSet keys = preStmt.getGeneratedKeys()) {

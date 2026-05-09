@@ -1,40 +1,47 @@
 package repository.jdbc;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
 public class JdbcUtils {
     private Properties jdbcProps;
-    private Connection instance = null;
+    private static HikariDataSource dataSource;
 
     public JdbcUtils(Properties props) {
         this.jdbcProps = props;
+        initializePool();
     }
 
-    private Connection getNewConnection() {
-        String url = jdbcProps.getProperty("jdbc.url");
-        String user = jdbcProps.getProperty("jdbc.user");
-        String pass = jdbcProps.getProperty("jdbc.pass");
-        Connection con = null;
-        try {
-            con = DriverManager.getConnection(url, user, pass);
-            System.out.println("Successfully connected to MySQL database.");
-        } catch (SQLException e) {
-            System.err.println("Error getting connection: " + e);
+    private void initializePool() {
+        if (dataSource == null) {
+            try {
+                HikariConfig config = new HikariConfig();
+                config.setJdbcUrl(jdbcProps.getProperty("jdbc.url"));
+                config.setUsername(jdbcProps.getProperty("jdbc.user"));
+                config.setPassword(jdbcProps.getProperty("jdbc.pass"));
+
+                config.setMaximumPoolSize(10);
+                config.setMinimumIdle(2);
+                config.setConnectionTimeout(30000);
+
+                dataSource = new HikariDataSource(config);
+                System.out.println("HikariCP Connection Pool initialized successfully!");
+            } catch (Exception e) {
+                System.err.println("Error initializing connection pool: " + e.getMessage());
+            }
         }
-        return con;
     }
 
     public Connection getConnection() {
         try {
-            if (instance == null || instance.isClosed() || !instance.isValid(5)) {
-                instance = getNewConnection();
-            }
+            return dataSource.getConnection();
         } catch (SQLException e) {
-            System.err.println("Error DB " + e);
+            System.err.println("Error getting connection from pool: " + e);
+            return null;
         }
-        return instance;
     }
 }

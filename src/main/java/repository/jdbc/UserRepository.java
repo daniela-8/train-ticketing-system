@@ -18,10 +18,10 @@ public class UserRepository implements IUserRepository {
 
     @Override
     public User save(User entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
-                "INSERT INTO Users (name, email, role) VALUES (?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement(
+                     "INSERT INTO Users (name, email, role) VALUES (?, ?, ?)",
+                     Statement.RETURN_GENERATED_KEYS)){
 
             preStmt.setString(1, entity.getName());
             preStmt.setString(2, entity.getEmail());

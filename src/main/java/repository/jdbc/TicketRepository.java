@@ -18,8 +18,8 @@ public class TicketRepository implements ITicketRepository {
 
     @Override
     public Ticket save(Ticket entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement(
                 "INSERT INTO Tickets (customer_id, ride_id, departure_station_id, arrival_station_id, number_of_seats, status) VALUES (?, ?, ?, ?, ?, ?)",
                 Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setLong(1, entity.getCustomer().getId());

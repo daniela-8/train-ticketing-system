@@ -17,8 +17,8 @@ public class StationRepository implements IStationRepository {
 
     @Override
     public Station save(Station entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
+        try (Connection con = dbUtils.getConnection();
+             PreparedStatement preStmt = con.prepareStatement(
                 "INSERT INTO Stations (name) VALUES (?)",
                 Statement.RETURN_GENERATED_KEYS)) {
 
