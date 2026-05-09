@@ -5,6 +5,7 @@ import domain.Station;
 import repository.interfaces.IRideSegmentRepository;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,13 +26,15 @@ public class RideSegmentRepository implements IRideSegmentRepository {
     public RideSegment saveSegmentForRide(RideSegment entity, Long rideId) {
         try (Connection con = dbUtils.getConnection();
              PreparedStatement preStmt = con.prepareStatement(
-                     "INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats) VALUES (?, ?, ?, ?)",
+                     "INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats) VALUES (?, ?, ?, ?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
 
             preStmt.setLong(1, rideId);
             preStmt.setLong(2, entity.getFromStation().getId());
             preStmt.setLong(3, entity.getToStation().getId());
             preStmt.setInt(4, entity.getAvailableSeats());
+            preStmt.setObject(5, entity.getDepartureTime());
+            preStmt.setObject(6, entity.getArrivalTime());
             preStmt.executeUpdate();
 
             try (ResultSet keys = preStmt.getGeneratedKeys()) {
@@ -50,7 +53,11 @@ public class RideSegmentRepository implements IRideSegmentRepository {
                 if (rs.next()) {
                     Station from = new Station(rs.getLong("from_station_id"), null);
                     Station to = new Station(rs.getLong("to_station_id"), null);
-                    return Optional.of(new RideSegment(id, from, to, rs.getInt("available_seats")));
+
+                    LocalDateTime depTime = rs.getObject("departure_time", LocalDateTime.class);
+                    LocalDateTime arrTime = rs.getObject("arrival_time", LocalDateTime.class);
+
+                    return Optional.of(new RideSegment(id, from, to, depTime, arrTime, rs.getInt("available_seats")));
                 }
             }
         } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
@@ -72,7 +79,11 @@ public class RideSegmentRepository implements IRideSegmentRepository {
                 while (rs.next()) {
                     Station from = new Station(rs.getLong("from_station_id"), null);
                     Station to = new Station(rs.getLong("to_station_id"), null);
-                    list.add(new RideSegment(rs.getLong("id"), from, to, rs.getInt("available_seats")));
+
+                    LocalDateTime depTime = rs.getObject("departure_time", LocalDateTime.class);
+                    LocalDateTime arrTime = rs.getObject("arrival_time", LocalDateTime.class);
+
+                    list.add(new RideSegment(rs.getLong("id"), from, to, depTime, arrTime, rs.getInt("available_seats")));
                 }
             }
         } catch (SQLException ex) { System.err.println("Error DB: " + ex); }

@@ -58,3 +58,7 @@ CREATE TABLE Tickets (
                          FOREIGN KEY (departure_station_id) REFERENCES Stations(id),
                          FOREIGN KEY (arrival_station_id) REFERENCES Stations(id)
 );
+
+ALTER TABLE RideSegments
+    ADD COLUMN departure_time DATETIME NOT NULL,
+    ADD COLUMN arrival_time DATETIME NOT NULL;

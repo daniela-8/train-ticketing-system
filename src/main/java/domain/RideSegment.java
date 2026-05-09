@@ -1,17 +1,22 @@
 package domain;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class RideSegment implements Entity<Long> {
     private Long id;
     private Station fromStation;
     private Station toStation;
+    private LocalDateTime departureTime;
+    private LocalDateTime arrivalTime;
     private int availableSeats;
 
-    public RideSegment(Long id, Station fromStation, Station toStation, int availableSeats) {
+    public RideSegment(Long id, Station fromStation, Station toStation, LocalDateTime departureTime, LocalDateTime arrivalTime, int availableSeats) {
         this.id = id;
         this.fromStation = fromStation;
         this.toStation = toStation;
+        this.departureTime = departureTime;
+        this.arrivalTime = arrivalTime;
         this.availableSeats = availableSeats;
     }
 
@@ -25,6 +30,12 @@ public class RideSegment implements Entity<Long> {
 
     public Station getToStation() { return toStation; }
     public void setToStation(Station toStation) { this.toStation = toStation; }
+
+    public LocalDateTime getDepartureTime() { return departureTime; }
+    public void setDepartureTime(LocalDateTime departureTime) { this.departureTime = departureTime; }
+
+    public LocalDateTime getArrivalTime() { return arrivalTime; }
+    public void setArrivalTime(LocalDateTime arrivalTime) { this.arrivalTime = arrivalTime; }
 
     public int getAvailableSeats() { return availableSeats; }
     public void setAvailableSeats(int availableSeats) { this.availableSeats = availableSeats; }
