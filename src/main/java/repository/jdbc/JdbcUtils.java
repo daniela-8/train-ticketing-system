@@ -29,7 +29,7 @@ public class JdbcUtils {
 
     public Connection getConnection() {
         try {
-            if (instance == null || instance.isClosed()) {
+            if (instance == null || instance.isClosed() || !instance.isValid(5)) {
                 instance = getNewConnection();
             }
         } catch (SQLException e) {
