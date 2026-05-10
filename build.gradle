@@ -32,6 +32,8 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 
 }
 
@@ -41,6 +43,6 @@ configurations {
     }
 }
 
-test {
+tasks.named('test') {
     useJUnitPlatform()
 }

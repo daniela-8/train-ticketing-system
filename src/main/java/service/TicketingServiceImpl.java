@@ -26,14 +26,14 @@ public class TicketingServiceImpl implements ITicketingService {
     private final ITicketRepository ticketRepository;
     private final NotificationService notificationService;
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Autowired
     public TicketingServiceImpl(IUserRepository userRepository, IStationRepository stationRepository,
                                 ITrainRepository trainRepository, IRouteRepository routeRepository,
                                 IRideRepository rideRepository, ITicketRepository ticketRepository,
-                                NotificationService notificationService) {
+                                NotificationService notificationService,
+                                SimpMessagingTemplate messagingTemplate) {
         this.userRepository = userRepository;
         this.stationRepository = stationRepository;
         this.trainRepository = trainRepository;
@@ -41,6 +41,7 @@ public class TicketingServiceImpl implements ITicketingService {
         this.rideRepository = rideRepository;
         this.ticketRepository = ticketRepository;
         this.notificationService = notificationService;
+        this.messagingTemplate = messagingTemplate;
         logger.info("Enterprise TicketingServiceImpl with Changeover Engine initialized.");
     }
 

@@ -32,19 +32,34 @@ public class RideSegment {
     private LocalDateTime arrivalTime;
 
     public RideSegment() {}
+
     public RideSegment(Long id, Station fromStation, Station toStation, LocalDateTime departureTime, LocalDateTime arrivalTime, int availableSeats) {
-        this.id = id; this.fromStation = fromStation; this.toStation = toStation;
-        this.departureTime = departureTime; this.arrivalTime = arrivalTime;
+        this.id = id;
+        this.fromStation = fromStation;
+        this.toStation = toStation;
+        this.departureTime = departureTime;
+        this.arrivalTime = arrivalTime;
         this.availableSeats = availableSeats;
     }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Ride getRide() { return ride; }
+    public void setRide(Ride ride) { this.ride = ride; }
+
     public Station getFromStation() { return fromStation; }
+    public void setFromStation(Station fromStation) { this.fromStation = fromStation; }
+
     public Station getToStation() { return toStation; }
+    public void setToStation(Station toStation) { this.toStation = toStation; }
+
     public int getAvailableSeats() { return availableSeats; }
-    public void setAvailableSeats(int seats) { this.availableSeats = seats; }
+    public void setAvailableSeats(int availableSeats) { this.availableSeats = availableSeats; }
+
     public LocalDateTime getDepartureTime() { return departureTime; }
-    public void setDepartureTime(LocalDateTime time) { this.departureTime = time; }
+    public void setDepartureTime(LocalDateTime departureTime) { this.departureTime = departureTime; }
+
     public LocalDateTime getArrivalTime() { return arrivalTime; }
-    public void setArrivalTime(LocalDateTime time) { this.arrivalTime = time; }
+    public void setArrivalTime(LocalDateTime arrivalTime) { this.arrivalTime = arrivalTime; }
 }
