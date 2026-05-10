@@ -1,6 +1,8 @@
 package repository.jdbc;
 
 import domain.Station;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IStationRepository;
 
 import java.sql.*;
@@ -8,9 +10,11 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class StationRepository implements IStationRepository {
     private JdbcUtils dbUtils;
 
+    @Autowired
     public StationRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }

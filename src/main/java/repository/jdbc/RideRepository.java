@@ -5,14 +5,19 @@ import domain.RideSegment;
 import domain.Route;
 import domain.Train;
 import repository.interfaces.IRideRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
+
 public class RideRepository implements IRideRepository {
     private JdbcUtils dbUtils;
+    @Autowired
 
     public RideRepository(Properties props) {
         dbUtils = new JdbcUtils(props);

@@ -2,6 +2,8 @@ package service;
 
 import domain.*;
 import domain.enums.TicketStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import repository.interfaces.*;
 import repository.jdbc.*;
 
@@ -9,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+@Service
 public class TicketingServiceImpl implements ITicketingService {
 
     private final UserRepository userRepository;
@@ -19,6 +22,8 @@ public class TicketingServiceImpl implements ITicketingService {
     private final TicketRepository ticketRepository;
     private final RideSegmentRepository segmentRepository;
 
+
+    @Autowired
     public TicketingServiceImpl(UserRepository userRepository, StationRepository stationRepository,
                                 TrainRepository trainRepository, RouteRepository routeRepository,
                                 RideRepository rideRepository, TicketRepository ticketRepository, RideSegmentRepository segmentRepository) {

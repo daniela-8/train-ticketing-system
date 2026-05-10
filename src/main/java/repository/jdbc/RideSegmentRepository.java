@@ -2,6 +2,8 @@ package repository.jdbc;
 
 import domain.RideSegment;
 import domain.Station;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IRideSegmentRepository;
 
 import java.sql.*;
@@ -11,8 +13,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class RideSegmentRepository implements IRideSegmentRepository {
     private JdbcUtils dbUtils;
+    @Autowired
+
 
     public RideSegmentRepository(Properties props) {
         dbUtils = new JdbcUtils(props);

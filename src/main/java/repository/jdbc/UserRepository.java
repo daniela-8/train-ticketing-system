@@ -2,6 +2,8 @@ package repository.jdbc;
 
 import domain.User;
 import domain.enums.Role;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IUserRepository;
 
 import java.sql.*;
@@ -9,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class UserRepository implements IUserRepository {
     private JdbcUtils dbUtils;
 
+    @Autowired
     public UserRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }

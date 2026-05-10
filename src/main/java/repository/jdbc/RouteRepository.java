@@ -1,6 +1,8 @@
 package repository.jdbc;
 
 import domain.Route;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IRouteRepository;
 
 import java.sql.*;
@@ -8,9 +10,10 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class RouteRepository implements IRouteRepository {
     private JdbcUtils dbUtils;
-
+    @Autowired
     public RouteRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }

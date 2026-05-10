@@ -1,6 +1,8 @@
 package repository.jdbc;
 
 import domain.Train;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.ITrainRepository;
 
 import java.sql.*;
@@ -8,9 +10,11 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class TrainRepository implements ITrainRepository {
     private JdbcUtils dbUtils;
 
+    @Autowired
     public TrainRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }
