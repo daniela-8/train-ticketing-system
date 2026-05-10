@@ -5,6 +5,7 @@ import domain.enums.TicketStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import repository.interfaces.*;
@@ -24,6 +25,8 @@ public class TicketingServiceImpl implements ITicketingService {
     private final IRideRepository rideRepository;
     private final ITicketRepository ticketRepository;
     private final NotificationService notificationService;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
     public TicketingServiceImpl(IUserRepository userRepository, IStationRepository stationRepository,
@@ -153,6 +156,10 @@ public class TicketingServiceImpl implements ITicketingService {
         for (Ticket t : bookings) {
             notificationService.sendDelayNotification(t.getCustomer().getEmail(), rideId, delayMinutes);
         }
+        String delayPayload = "{\"rideId\": " + rideId + ", \"delayMinutes\": " + delayMinutes + "}";
+        messagingTemplate.convertAndSend("/topic/delays", delayPayload);
+
+        logger.info("Real-time WebSocket broadcast sent for Ride ID {}", rideId);
     }
 
     @Override
