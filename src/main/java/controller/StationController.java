@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import service.ITicketingService;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/stations")
@@ -29,12 +28,13 @@ public class StationController {
 
     @GetMapping
     public ResponseEntity<List<StationDto>> getAllStations() {
-        logger.info("REST Request received: GET /api/stations");
+        logger.info("REST Request: GET /api/stations");
+
         List<Station> stations = ticketingService.getAllStations();
 
         List<StationDto> dtos = stations.stream()
                 .map(DtoMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
 
         return ResponseEntity.ok(dtos);
     }
