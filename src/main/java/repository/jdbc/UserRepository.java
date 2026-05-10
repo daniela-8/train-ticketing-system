@@ -5,110 +5,103 @@ import domain.enums.Role;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Repository;
 import repository.interfaces.IUserRepository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.Properties;
 
 @Repository
 public class UserRepository implements IUserRepository {
     private static final Logger logger = LogManager.getLogger(UserRepository.class);
-    private JdbcUtils dbUtils;
+    private final DataSource dataSource;
 
     @Autowired
-    public UserRepository(Properties props) {
-        dbUtils = new JdbcUtils(props);
+    public UserRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    private Connection getConnection() {
+        return DataSourceUtils.getConnection(dataSource);
     }
 
     @Override
     public User save(User entity) {
-        try (Connection con = dbUtils.getConnection();
-             PreparedStatement preStmt = con.prepareStatement(
-                     "INSERT INTO Users (name, email, role) VALUES (?, ?, ?)",
-                     Statement.RETURN_GENERATED_KEYS)){
-
+        String sql = "INSERT INTO Users (name, email, role) VALUES (?, ?, ?)";
+        Connection con = getConnection();
+        try (PreparedStatement preStmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setString(1, entity.getName());
             preStmt.setString(2, entity.getEmail());
             preStmt.setString(3, entity.getRole().name());
-
             preStmt.executeUpdate();
-
-            try (ResultSet generatedKeys = preStmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    entity.setId(generatedKeys.getLong(1));
-                }
+            try (ResultSet keys = preStmt.getGeneratedKeys()) {
+                if (keys.next()) entity.setId(keys.getLong(1));
             }
         } catch (SQLException ex) {
-            logger.error("Database error occurred while saving User", ex);
+            logger.error("DB Error: save User", ex);
+            throw new RuntimeException(ex);
         }
         return entity;
     }
 
     @Override
     public Optional<User> findOne(Long id) {
-        Connection con = dbUtils.getConnection();
+        Connection con = getConnection();
         try (PreparedStatement preStmt = con.prepareStatement("SELECT * FROM Users WHERE id = ?")) {
             preStmt.setLong(1, id);
             try (ResultSet result = preStmt.executeQuery()) {
                 if (result.next()) {
-                    String name = result.getString("name");
-                    String email = result.getString("email");
-                    Role role = Role.valueOf(result.getString("role"));
-                    return Optional.of(new User(id, name, email, role));
+                    return Optional.of(new User(id, result.getString("name"), result.getString("email"), Role.valueOf(result.getString("role"))));
                 }
             }
         } catch (SQLException ex) {
-            logger.error("Database error occurred while finding User by ID: {}", id, ex);
+            logger.error("DB Error: findOne User", ex);
         }
         return Optional.empty();
     }
 
     @Override
     public Iterable<User> findAll() {
-        Connection con = dbUtils.getConnection();
         ArrayList<User> users = new ArrayList<>();
+        Connection con = getConnection();
         try (PreparedStatement preStmt = con.prepareStatement("SELECT * FROM Users");
              ResultSet result = preStmt.executeQuery()) {
             while (result.next()) {
-                Long id = result.getLong("id");
-                String name = result.getString("name");
-                String email = result.getString("email");
-                Role role = Role.valueOf(result.getString("role"));
-                users.add(new User(id, name, email, role));
+                users.add(new User(result.getLong("id"), result.getString("name"), result.getString("email"), Role.valueOf(result.getString("role"))));
             }
         } catch (SQLException ex) {
-            logger.error("Database error occurred while finding all Users", ex);
+            logger.error("DB Error: findAll Users", ex);
         }
         return users;
     }
 
     @Override
-    public void delete(Long id) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement("DELETE FROM Users WHERE id = ?")) {
-            preStmt.setLong(1, id);
-            preStmt.executeUpdate();
-        } catch (SQLException ex) {
-            logger.error("Database error occurred while deleting User with ID: {}", id, ex);
-        }
-    }
-
-    @Override
     public User update(User entity) {
-        Connection con = dbUtils.getConnection();
-        try (PreparedStatement preStmt = con.prepareStatement(
-                "UPDATE Users SET name = ?, email = ?, role = ? WHERE id = ?")) {
+        Connection con = getConnection();
+        try (PreparedStatement preStmt = con.prepareStatement("UPDATE Users SET name = ?, email = ?, role = ? WHERE id = ?")) {
             preStmt.setString(1, entity.getName());
             preStmt.setString(2, entity.getEmail());
             preStmt.setString(3, entity.getRole().name());
             preStmt.setLong(4, entity.getId());
             preStmt.executeUpdate();
         } catch (SQLException ex) {
-            logger.error("Database error occurred while updating User with ID: {}", entity.getId(), ex);
+            logger.error("DB Error: update User", ex);
+            throw new RuntimeException(ex);
         }
         return entity;
+    }
+
+    @Override
+    public void delete(Long id) {
+        Connection con = getConnection();
+        try (PreparedStatement preStmt = con.prepareStatement("DELETE FROM Users WHERE id = ?")) {
+            preStmt.setLong(1, id);
+            preStmt.executeUpdate();
+        } catch (SQLException ex) {
+            logger.error("DB Error: delete User", ex);
+        }
     }
 }

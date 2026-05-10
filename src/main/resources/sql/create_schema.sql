@@ -68,3 +68,18 @@ INSERT INTO Stations (name) VALUES
                                 ('Bucharest'),
                                 ('Brasov'),
                                 ('Timisoara');
+
+
+INSERT INTO Trains (name, total_capacity) VALUES ('InterCity-Express', 100);
+
+INSERT INTO Routes (name) VALUES ('Cluj to Bucharest');
+
+INSERT INTO Rides (train_id, route_id, delay_minutes) VALUES (1, 1, 0);
+
+INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats, departure_time, arrival_time)
+VALUES (1, 1, 3, 100, '2023-12-01 08:00:00', '2023-12-01 11:00:00');
+
+INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats, departure_time, arrival_time)
+VALUES (1, 3, 2, 100, '2023-12-01 11:15:00', '2023-12-01 14:00:00');
+
+INSERT INTO Users (name, email, role) VALUES ('Test User', 'test@example.com', 'CUSTOMER');
