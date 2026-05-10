@@ -26,16 +26,27 @@ public class Ride {
     private int delayMinutes;
 
     public Ride() {}
+
     public Ride(Long id, Train train, Route route, List<RideSegment> segments, int delayMinutes) {
-        this.id = id; this.train = train; this.route = route;
-        this.segments = segments; this.delayMinutes = delayMinutes;
+        this.id = id;
+        this.train = train;
+        this.route = route;
+        this.segments = segments;
+        this.delayMinutes = delayMinutes;
     }
-    // Getters/Setters...
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
     public Train getTrain() { return train; }
+    public void setTrain(Train train) { this.train = train; }
+
     public Route getRoute() { return route; }
+    public void setRoute(Route route) { this.route = route; }
+
     public List<RideSegment> getSegments() { return segments; }
+    public void setSegments(List<RideSegment> segments) { this.segments = segments; }
+
     public int getDelayMinutes() { return delayMinutes; }
     public void setDelayMinutes(int delayMinutes) { this.delayMinutes = delayMinutes; }
 }
