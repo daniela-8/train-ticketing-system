@@ -131,6 +131,8 @@ public class TicketingServiceImpl implements ITicketingService {
     @Override
     @Transactional
     public void delayRide(Long rideId, int delayMinutes) throws TicketingException {
+        logger.info("Admin Action: Applying {} min delay to Ride {}", delayMinutes, rideId);
+
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new TicketingException("Ride not found."));
 
@@ -145,5 +147,23 @@ public class TicketingServiceImpl implements ITicketingService {
         for (Ticket t : bookings) {
             notificationService.sendDelayNotification(t.getCustomer().getEmail(), rideId, delayMinutes);
         }
+    }
+
+    @Override
+    public void deleteTrain(Long id) {
+        logger.info("Admin Action: Deleting train ID {}", id);
+        trainRepository.deleteById(id);
+    }
+
+    @Override
+    public Route addRoute(String name) {
+        logger.info("Admin Action: Adding new route: {}", name);
+        return routeRepository.save(new Route(null, name));
+    }
+
+    @Override
+    public List<Ticket> getAllBookings() {
+        logger.info("Admin Action: Fetching all system bookings.");
+        return ticketRepository.findAll();
     }
 }
