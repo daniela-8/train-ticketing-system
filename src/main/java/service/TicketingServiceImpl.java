@@ -169,5 +169,24 @@ public class TicketingServiceImpl implements ITicketingService {
 
     @Override
     public void delayRide(Long rideId, int delayMinutes) throws TicketingException {
+        if (delayMinutes <= 0) {
+            throw new TicketingException("Delay minutes must be greater than zero.");
+        }
+
+        Ride ride = rideRepository.findOne(rideId)
+                .orElseThrow(() -> new TicketingException("Ride with ID " + rideId + " not found."));
+
+        ride.setDelayMinutes(ride.getDelayMinutes() + delayMinutes);
+        rideRepository.update(ride);
+
+        List<RideSegment> segments = segmentRepository.findByRideId(rideId);
+
+        for (RideSegment segment : segments) {
+
+            segment.setDepartureTime(segment.getDepartureTime().plusMinutes(delayMinutes));
+            segment.setArrivalTime(segment.getArrivalTime().plusMinutes(delayMinutes));
+
+            segmentRepository.update(segment);
+        }
     }
 }
