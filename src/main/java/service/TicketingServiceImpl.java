@@ -2,7 +2,6 @@ package service;
 
 import domain.*;
 import domain.enums.TicketStatus;
-import repository.*;
 import repository.interfaces.*;
 import repository.jdbc.*;
 
@@ -119,7 +118,53 @@ public class TicketingServiceImpl implements ITicketingService {
 
     @Override
     public List<Ride> findRoutes(Long departureStationId, Long arrivalStationId) throws TicketingException {
-        return null;
+        List<Ride> validRides = new java.util.ArrayList<>();
+
+        Iterable<Ride> allRides = rideRepository.findAll();
+
+        for (Ride ride : allRides) {
+            List<RideSegment> segments = segmentRepository.findByRideId(ride.getId());
+
+            int startIndex = -1;
+            int endIndex = -1;
+
+            for (int i = 0; i < segments.size(); i++) {
+                if (segments.get(i).getFromStation().getId().equals(departureStationId)) {
+                    startIndex = i;
+                }
+                if (segments.get(i).getToStation().getId().equals(arrivalStationId)) {
+                    endIndex = i;
+                }
+            }
+
+            if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
+
+                boolean hasCapacity = true;
+                for (int i = startIndex; i <= endIndex; i++) {
+                    if (segments.get(i).getAvailableSeats() <= 0) {
+                        hasCapacity = false;
+                        break;
+                    }
+                }
+
+                if (hasCapacity) {
+                    Ride populatedRide = new Ride(
+                            ride.getId(),
+                            ride.getTrain(),
+                            ride.getRoute(),
+                            segments,
+                            ride.getDelayMinutes()
+                    );
+                    validRides.add(populatedRide);
+                }
+            }
+        }
+
+        if (validRides.isEmpty()) {
+            throw new TicketingException("No direct routes with available seats found between these stations.");
+        }
+
+        return validRides;
     }
 
     @Override
