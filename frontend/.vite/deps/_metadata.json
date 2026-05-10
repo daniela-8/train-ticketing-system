@@ -1,0 +1,56 @@
+{
+  "hash": "ceaf9e4d",
+  "configHash": "20d7a7df",
+  "lockfileHash": "c1e9a22c",
+  "browserHash": "ed83b447",
+  "optimized": {
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "b23618f5",
+      "needsInterop": false
+    },
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.mjs",
+      "file": "lucide-react.js",
+      "fileHash": "69483bad",
+      "needsInterop": false
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "0afb0569",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "ce1e874c",
+      "needsInterop": true
+    },
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "85994a13",
+      "needsInterop": true
+    },
+    "sockjs-client": {
+      "src": "../../node_modules/sockjs-client/lib/entry.js",
+      "file": "sockjs-client.js",
+      "fileHash": "1510897c",
+      "needsInterop": true
+    },
+    "stompjs": {
+      "src": "../../node_modules/stompjs/index.js",
+      "file": "stompjs.js",
+      "fileHash": "71a5fa62",
+      "needsInterop": true
+    }
+  },
+  "chunks": {
+    "chunk-nbk3hphP": {
+      "file": "chunk-nbk3hphP.js",
+      "isDynamicEntry": false
+    }
+  }
+}

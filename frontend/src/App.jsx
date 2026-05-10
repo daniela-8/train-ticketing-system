@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { ticketingApi } from './api';
-import { Train, Search, MapPin, Clock, Ticket as TicketIcon, AlertTriangle, Radio } from 'lucide-react';
-
+import { Train, Search, Clock, AlertCircle, Activity, ShieldCheck, User, CheckCircle2 } from 'lucide-react';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
-
+import './App.css';
 
 function App() {
-    const [stations, setStations] = useState([]);
-    const [depStation, setDepStation] = useState('');
-    const [arrStation, setArrStation] = useState('');
-    const [rides, setRides] = useState([]);
-    const [email, setEmail] = useState('');
-    const [seats, setSeats] = useState(1);
-    const [message, setMessage] = useState({ text: '', type: '' });
+    const [activeTab, setActiveTab] = useState('customer');
     const [wsConnected, setWsConnected] = useState(false);
+    const [message, setMessage] = useState({ text: '', type: '' });
+    const [rides, setRides] = useState([]);
+
+    const showMsg = (text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -26,158 +26,354 @@ function App() {
             stompClient.debug = null;
 
             stompClient.connect({}, () => {
-                if (isMounted) {
-                    setWsConnected(true);
-                    console.log("Connected to Siemens Live Delay Stream");
-
-                    stompClient.subscribe('/topic/delays', (msg) => {
-                        const update = JSON.parse(msg.body);
-                        setRides(prevRides =>
-                            prevRides.map(ride =>
-                                ride.id === update.rideId
-                                    ? { ...ride, delayMinutes: update.delayMinutes }
-                                    : ride
-                            )
-                        );
-                        showMsg(`Real-time Update: Ride #${update.rideId} delayed by ${update.delayMinutes} mins`, "warning");
-                    });
-                } else {
-                    stompClient.disconnect();
-                }
-            }, (error) => {
-                console.log("WebSocket connection attempt failed. Retrying...");
+                if (isMounted) setWsConnected(true);
+                stompClient.subscribe('/topic/delays', (msg) => {
+                    const update = JSON.parse(msg.body);
+                    setRides(prevRides =>
+                        prevRides.map(ride =>
+                            ride.id === update.rideId
+                                ? { ...ride, delayMinutes: update.delayMinutes }
+                                : ride
+                        )
+                    );
+                    showMsg(`Ride #${update.rideId} delayed by ${update.delayMinutes} mins`, "warning");
+                });
+            }, () => {
                 if (isMounted) setWsConnected(false);
+                setTimeout(connectWebSocket, 5000);
             });
         };
 
         connectWebSocket();
-
         return () => {
             isMounted = false;
-            if (stompClient && stompClient.connected) {
-                stompClient.disconnect();
-            }
+            if (stompClient?.connected) stompClient.disconnect();
         };
     }, []);
 
-    useEffect(() => {
-        ticketingApi.getStations()
-            .then(res => setStations(res.data))
-            .catch(() => showMsg("Backend Offline", "error"));
-    }, []);
-
-    const showMsg = (text, type) => {
-        setMessage({ text, type });
-        setTimeout(() => setMessage({ text: '', type: '' }), 6000);
-    };
-
-    const handleSearch = async () => {
-        try {
-            const res = await ticketingApi.findRoutes(depStation, arrStation);
-            setRides(res.data);
-            if (res.data.length === 0) showMsg("No direct routes available", "warning");
-        } catch (err) {
-            showMsg(err.response?.data?.message || "Search failed", "error");
-        }
-    };
-
-    const handleBook = async (rideId) => {
-        if (!email) return showMsg("Email required for confirmation", "warning");
-        try {
-            await ticketingApi.bookTicket({
-                userEmail: email, rideId,
-                departureStationId: depStation,
-                arrivalStationId: arrStation,
-                numberOfSeats: parseInt(seats)
-            });
-            showMsg("Ticket Booked! Async confirmation email triggered.", "success");
-        } catch (err) {
-            showMsg(err.response?.data?.message || "Booking conflict", "error");
-        }
-    };
-
     return (
-        <div style={{ fontFamily: 'Inter, system-ui, sans-serif', padding: '2rem', maxWidth: '850px', margin: '0 auto', color: '#172b4d' }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Train size={32} color="#0052cc" />
-                    <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Siemens TrainLink</h1>
+        <div className="elegant-app-container">
+            <header className="elegant-header">
+                <div className="brand">
+                    <div className="brand-icon-wrapper">
+                        <Train size={28} className="brand-icon" />
+                    </div>
+                    <h1>Train Ticketing System</h1>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: wsConnected ? '#36b37e' : '#ff5630' }}>
-                    <Radio size={14} className={wsConnected ? 'pulse' : ''} />
-                    {wsConnected ? 'LIVE UPDATES ACTIVE' : 'RECONNECTING TO SERVER...'}
+
+                <div className="header-controls">
+                    <div className="role-toggle">
+                        <button className={activeTab === 'customer' ? 'active' : ''} onClick={() => setActiveTab('customer')}>
+                            <User size={16} /> Booking
+                        </button>
+                        <button className={activeTab === 'admin' ? 'active' : ''} onClick={() => setActiveTab('admin')}>
+                            <ShieldCheck size={16} /> Admin
+                        </button>
+                    </div>
                 </div>
             </header>
 
             {message.text && (
-                <div style={{
-                    padding: '1rem', marginBottom: '1.5rem', borderRadius: '6px', borderLeft: '4px solid',
-                    backgroundColor: message.type === 'error' ? '#ffebe6' : message.type === 'warning' ? '#fffae6' : '#e3fcef',
-                    borderColor: message.type === 'error' ? '#ff5630' : message.type === 'warning' ? '#ffab00' : '#36b37e'
-                }}>
-                    {message.text}
+                <div className={`toast-message ${message.type}`}>
+                    {message.type === 'success' && <CheckCircle2 size={18} />}
+                    {message.type === 'warning' && <AlertCircle size={18} />}
+                    {message.type === 'error' && <Activity size={18} />}
+                    <span>{message.text}</span>
                 </div>
             )}
 
-            {/* Search Controls */}
-            <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', background: '#f4f5f7', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Departure</label>
-                    <select style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid #ddd' }} value={depStation} onChange={e => setDepStation(e.target.value)}>
-                        <option value="">Choose Start...</option>
-                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Destination</label>
-                    <select style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid #ddd' }} value={arrStation} onChange={e => setArrStation(e.target.value)}>
-                        <option value="">Choose End...</option>
-                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                </div>
-                <button onClick={handleSearch} style={{ gridColumn: 'span 2', padding: '0.8rem', backgroundColor: '#0052cc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                    <Search size={18} /> SEARCH AVAILABLE RIDES
-                </button>
-            </section>
-
-            {/* Ride List */}
-            <main style={{ marginTop: '2.5rem' }}>
-                {rides.map(ride => (
-                    <div key={ride.id} style={{ border: '1px solid #ebecf0', borderRadius: '10px', padding: '1.5rem', marginBottom: '1.5rem', transition: 'all 0.3s' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                                <h3 style={{ margin: '0 0 0.5rem 0' }}>{ride.train.name}</h3>
-                                <span style={{ color: '#0052cc', background: '#deebff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>{ride.routeName}</span>
-                            </div>
-                            {ride.delayMinutes > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#de350b', background: '#ffebe6', padding: '4px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                                    <AlertTriangle size={16} /> {ride.delayMinutes} MIN DELAY
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ margin: '1.5rem 0' }}>
-                            {ride.segments.map((seg, idx) => (
-                                <div key={idx} style={{ padding: '8px 0', borderLeft: '2px solid #dfe1e6', paddingLeft: '1.5rem', position: 'relative' }}>
-                                    <div style={{ position: 'absolute', left: '-5px', top: '15px', width: '8px', height: '8px', borderRadius: '50%', background: '#0052cc' }}></div>
-                                    <strong style={{ fontSize: '0.95rem' }}>{seg.fromStation.name}</strong> → {seg.toStation.name} <br/>
-                                    <small style={{ color: '#6b778c' }}><Clock size={12} /> Departs: {new Date(seg.departureTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} | Seats: {seg.availableSeats}</small>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f4f5f7' }}>
-                            <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} style={{ flex: 2, padding: '0.6rem', borderRadius: '4px', border: '1px solid #ddd' }} />
-                            <input type="number" min="1" value={seats} onChange={e => setSeats(e.target.value)} style={{ width: '70px', padding: '0.6rem', borderRadius: '4px', border: '1px solid #ddd' }} />
-                            <button onClick={() => handleBook(ride.id)} style={{ flex: 1, backgroundColor: '#36b37e', color: 'white', border: 'none', padding: '0.6rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                CONFIRM BOOKING
-                            </button>
-                        </div>
-                    </div>
-                ))}
+            <main className="main-content">
+                {activeTab === 'customer' ?
+                    <CustomerPortal rides={rides} setRides={setRides} showMsg={showMsg} /> :
+                    <AdminPortal showMsg={showMsg} />
+                }
             </main>
         </div>
     );
 }
 
+function CustomerPortal({ rides, setRides, showMsg }) {
+    const [stations, setStations] = useState([]);
+    const [depStation, setDepStation] = useState('');
+    const [arrStation, setArrStation] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+
+    useEffect(() => {
+        ticketingApi.getStations().then(res => setStations(res.data)).catch(() => showMsg("Unable to load stations", "error"));
+    }, []);
+
+    const handleSearch = async () => {
+        if (!depStation || !arrStation) return showMsg("Please select both origin and destination.", "warning");
+        setIsSearching(true);
+        try {
+            const res = await ticketingApi.findRoutes(depStation, arrStation);
+            setRides(res.data);
+            if (res.data.length === 0) showMsg("No direct routes available for this selection.", "warning");
+        } catch (err) {
+            showMsg(err.response?.data?.message || "Search failed", "error");
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    return (
+        <div className="portal-container animate-fade-in">
+            <section className="search-panel">
+                <div className="input-group">
+                    <label>From</label>
+                    <select value={depStation} onChange={e => setDepStation(e.target.value)}>
+                        <option value="">Origin station</option>
+                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                </div>
+                <div className="input-group">
+                    <label>To</label>
+                    <select value={arrStation} onChange={e => setArrStation(e.target.value)}>
+                        <option value="">Destination station</option>
+                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                </div>
+                <div className="input-group button-group">
+                    <button className="btn-primary" onClick={handleSearch} disabled={isSearching}>
+                        {isSearching ? 'Searching...' : <><Search size={18} /> Find Trains</>}
+                    </button>
+                </div>
+            </section>
+
+            <section className="ride-list">
+                {rides.map(ride => (
+                    <RideCard key={ride.id} ride={ride} showMsg={showMsg} depStation={depStation} arrStation={arrStation} />
+                ))}
+            </section>
+        </div>
+    );
+}
+
+function RideCard({ ride, showMsg, depStation, arrStation }) {
+    const [email, setEmail] = useState('');
+    const [seats, setSeats] = useState(1);
+    const [isBooking, setIsBooking] = useState(false);
+
+    const handleBook = async () => {
+        if (!email) return showMsg("Please provide an email for the ticket receipt.", "warning");
+        setIsBooking(true);
+        try {
+            await ticketingApi.bookTicket({
+                userEmail: email, rideId: ride.id,
+                departureStationId: depStation, arrivalStationId: arrStation,
+                numberOfSeats: parseInt(seats)
+            });
+            showMsg("Booking confirmed! Your tickets have been emailed.", "success");
+            setEmail('');
+            setSeats(1);
+        } catch (err) {
+            showMsg(err.response?.data?.message || "We couldn't complete this booking.", "error");
+        } finally {
+            setIsBooking(false);
+        }
+    };
+
+    return (
+        <div className="elegant-card">
+            <div className="card-header">
+                <div className="route-info">
+                    <h3>{ride.train?.name || "Express Line"}</h3>
+                    <span className="route-tag">{ride.routeName || "Standard Route"}</span>
+                </div>
+                {ride.delayMinutes > 0 && (
+                    <div className="delay-badge">
+                        <AlertCircle size={14} /> {ride.delayMinutes}m delay
+                    </div>
+                )}
+            </div>
+
+            <div className="segments-timeline">
+                {ride.segments?.map((seg, idx) => (
+                    <div key={idx} className="timeline-node">
+                        <div className="timeline-locations">
+                            <span className="station-name">{seg.fromStation?.name}</span>
+                            <span className="arrow">→</span>
+                            <span className="station-name">{seg.toStation?.name}</span>
+                        </div>
+                        <div className="timeline-meta">
+                            <span className="meta-item"><Clock size={14} /> {new Date(seg.departureTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span className="meta-divider">•</span>
+                            <span className="meta-item">{seg.availableSeats} seats left</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="booking-controls">
+                <input
+                    type="email"
+                    className="flex-grow"
+                    placeholder="Passenger email address"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    disabled={isBooking}
+                />
+                <div className="seats-wrapper">
+                    <label>Seats</label>
+                    <input
+                        type="number"
+                        min="1"
+                        value={seats}
+                        onChange={e => setSeats(e.target.value)}
+                        disabled={isBooking}
+                    />
+                </div>
+                <button className="btn-success" onClick={handleBook} disabled={isBooking}>
+                    {isBooking ? 'Processing...' : 'Book Ticket'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function AdminPortal({ showMsg }) {
+    const [bookings, setBookings] = useState([]);
+    const [delayRideId, setDelayRideId] = useState('');
+    const [delayMins, setDelayMins] = useState('');
+    const [isReporting, setIsReporting] = useState(false);
+
+    const [trainName, setTrainName] = useState('');
+    const [trainCapacity, setTrainCapacity] = useState('');
+    const [trainDeleteId, setTrainDeleteId] = useState('');
+    const [routeName, setRouteName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        ticketingApi.getAdminBookings()
+            .then(res => setBookings(res.data))
+            .catch(() => showMsg("Unable to load booking ledger.", "error"));
+    }, []);
+
+    const handleReportDelay = async () => {
+        if (!delayRideId || !delayMins) return showMsg("Please provide both Ride ID and delay duration.", "warning");
+        setIsReporting(true);
+        try {
+            await ticketingApi.reportDelay(delayRideId, delayMins);
+            showMsg(`Delay broadcasted for Ride #${delayRideId}.`, "success");
+            setDelayRideId(''); setDelayMins('');
+        } catch (err) {
+            showMsg("Failed to broadcast delay.", "error");
+        } finally {
+            setIsReporting(false);
+        }
+    };
+
+    const handleAddTrain = async () => {
+        if (!trainName || !trainCapacity) return showMsg("Provide train name and capacity.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.addTrain(trainName, trainCapacity);
+            showMsg(`Train '${trainName}' added to fleet successfully.`, "success");
+            setTrainName(''); setTrainCapacity('');
+        } catch (err) {
+            showMsg("Failed to add train.", "error");
+        } finally { setIsLoading(false); }
+    };
+
+    const handleDeleteTrain = async () => {
+        if (!trainDeleteId) return showMsg("Provide Train ID to delete.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.deleteTrain(trainDeleteId);
+            showMsg(`Train #${trainDeleteId} removed from fleet.`, "success");
+            setTrainDeleteId('');
+        } catch (err) {
+            showMsg("Failed to delete train (may be linked to active rides).", "error");
+        } finally { setIsLoading(false); }
+    };
+
+    const handleAddRoute = async () => {
+        if (!routeName) return showMsg("Provide a route name.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.addRoute(routeName);
+            showMsg(`Route '${routeName}' mapped successfully.`, "success");
+            setRouteName('');
+        } catch (err) {
+            showMsg("Failed to add route.", "error");
+        } finally { setIsLoading(false); }
+    };
+
+    return (
+        <div className="portal-container animate-fade-in">
+            <div className="admin-grid">
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <section className="elegant-card">
+                        <div className="card-header border-bottom">
+                            <h3>Broadcast Network Delay</h3>
+                        </div>
+                        <div className="admin-controls" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <input type="number" placeholder="Ride ID" value={delayRideId} onChange={e => setDelayRideId(e.target.value)} />
+                                <input type="number" placeholder="Mins delayed" value={delayMins} onChange={e => setDelayMins(e.target.value)} />
+                            </div>
+                            <button className="btn-primary" onClick={handleReportDelay} disabled={isReporting}>
+                                {isReporting ? 'Broadcasting...' : 'Update Status'}
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="elegant-card">
+                        <div className="card-header border-bottom">
+                            <h3>Fleet & Route Management</h3>
+                        </div>
+                        <div className="admin-controls" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <input type="text" placeholder="Train Name" value={trainName} onChange={e => setTrainName(e.target.value)} style={{ flexGrow: 1 }}/>
+                                <input type="number" placeholder="Capacity" value={trainCapacity} onChange={e => setTrainCapacity(e.target.value)} style={{ width: '120px', flexShrink: 0 }}/>
+                                <button className="btn-success" onClick={handleAddTrain} disabled={isLoading} style={{ flexShrink: 0 }}>+ Train</button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <input type="text" placeholder="New Route Name" value={routeName} onChange={e => setRouteName(e.target.value)} style={{ flexGrow: 1 }}/>
+                                <button className="btn-success" onClick={handleAddRoute} disabled={isLoading} style={{ flexShrink: 0 }}>+ Route</button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                                <input type="number" placeholder="Train ID to Remove" value={trainDeleteId} onChange={e => setTrainDeleteId(e.target.value)} style={{ flexGrow: 1 }} />
+                                <button className="btn-primary" style={{backgroundColor: '#e11d48', flexShrink: 0}} onClick={handleDeleteTrain} disabled={isLoading}>Remove Train</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <section className="elegant-card">
+                    <div className="card-header border-bottom">
+                        <h3>Recent Bookings Ledger</h3>
+                    </div>
+                    <div className="table-container">
+                        <table className="elegant-table">
+                            <thead>
+                            <tr>
+                                <th>Ref ID</th>
+                                <th>Passenger</th>
+                                <th>Ride</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {bookings.map(b => (
+                                <tr key={b.id}>
+                                    <td className="font-mono">#{b.id}</td>
+                                    <td>{b.userEmail}</td>
+                                    <td>#{b.rideId}</td>
+                                    <td>{b.numberOfSeats}</td>
+                                    <td><span className="status-badge success">Confirmed</span></td>
+                                </tr>
+                            ))}
+                            {bookings.length === 0 && <tr><td colSpan="5" className="empty-state">No recent bookings found.</td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    );
+}
 export default App;

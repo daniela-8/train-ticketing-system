@@ -44,13 +44,12 @@ public class DtoMapper {
     }
 
     public static TicketDto toDto(Ticket ticket) {
-        if (ticket == null) return null;
         return new TicketDto(
                 ticket.getId(),
-                toDto(ticket.getCustomer()),
-                toDto(ticket.getRide()),
-                toDto(ticket.getDepartureStation()),
-                toDto(ticket.getArrivalStation()),
+                ticket.getCustomer().getEmail(),
+                ticket.getRide().getId(),
+                ticket.getDepartureStation().getId(),
+                ticket.getArrivalStation().getId(),
                 ticket.getNumberOfSeats(),
                 ticket.getStatus().name()
         );

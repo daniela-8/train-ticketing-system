@@ -15,7 +15,6 @@ public class Train {
     @Column(name = "total_capacity", nullable = false)
     private int totalCapacity;
 
-    // Required by Hibernate
     public Train() {}
 
     public Train(Long id, String name, int totalCapacity) {
@@ -26,8 +25,10 @@ public class Train {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
     public int getTotalCapacity() { return totalCapacity; }
     public void setTotalCapacity(int totalCapacity) { this.totalCapacity = totalCapacity; }
 }
