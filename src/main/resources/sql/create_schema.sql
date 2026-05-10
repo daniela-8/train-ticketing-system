@@ -111,3 +111,5 @@ INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_sea
 INSERT INTO Tickets (customer_id, ride_id, departure_station_id, arrival_station_id, number_of_seats, status) VALUES
                                                                                                                   (1, 1, 1, 3, 2, 'CONFIRMED'),
                                                                                                                   (2, 2, 4, 5, 1, 'CONFIRMED');
+
+SELECT * FROM Trains

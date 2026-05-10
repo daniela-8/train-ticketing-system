@@ -237,6 +237,12 @@ function AdminPortal({ showMsg }) {
     const [delayMins, setDelayMins] = useState('');
     const [isReporting, setIsReporting] = useState(false);
 
+    const [trainName, setTrainName] = useState('');
+    const [trainCapacity, setTrainCapacity] = useState('');
+    const [trainDeleteId, setTrainDeleteId] = useState('');
+    const [routeName, setRouteName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
     useEffect(() => {
         ticketingApi.getAdminBookings()
             .then(res => setBookings(res.data))
@@ -257,25 +263,87 @@ function AdminPortal({ showMsg }) {
         }
     };
 
+    const handleAddTrain = async () => {
+        if (!trainName || !trainCapacity) return showMsg("Provide train name and capacity.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.addTrain(trainName, trainCapacity);
+            showMsg(`Train '${trainName}' added to fleet successfully.`, "success");
+            setTrainName(''); setTrainCapacity('');
+        } catch (err) {
+            showMsg("Failed to add train.", "error");
+        } finally { setIsLoading(false); }
+    };
+
+    const handleDeleteTrain = async () => {
+        if (!trainDeleteId) return showMsg("Provide Train ID to delete.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.deleteTrain(trainDeleteId);
+            showMsg(`Train #${trainDeleteId} removed from fleet.`, "success");
+            setTrainDeleteId('');
+        } catch (err) {
+            showMsg("Failed to delete train (may be linked to active rides).", "error");
+        } finally { setIsLoading(false); }
+    };
+
+    const handleAddRoute = async () => {
+        if (!routeName) return showMsg("Provide a route name.", "warning");
+        setIsLoading(true);
+        try {
+            await ticketingApi.addRoute(routeName);
+            showMsg(`Route '${routeName}' mapped successfully.`, "success");
+            setRouteName('');
+        } catch (err) {
+            showMsg("Failed to add route.", "error");
+        } finally { setIsLoading(false); }
+    };
+
     return (
         <div className="portal-container animate-fade-in">
             <div className="admin-grid">
-                <section className="elegant-card">
-                    <div className="card-header border-bottom">
-                        <h3>Broadcast Network Delay</h3>
-                    </div>
-                    <div className="admin-controls">
-                        <input type="number" placeholder="Ride ID" value={delayRideId} onChange={e => setDelayRideId(e.target.value)} />
-                        <input type="number" placeholder="Minutes delayed" value={delayMins} onChange={e => setDelayMins(e.target.value)} />
-                        <button className="btn-primary" onClick={handleReportDelay} disabled={isReporting}>
-                            {isReporting ? 'Broadcasting...' : 'Update Status'}
-                        </button>
-                    </div>
-                </section>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    <section className="elegant-card">
+                        <div className="card-header border-bottom">
+                            <h3>Broadcast Network Delay</h3>
+                        </div>
+                        <div className="admin-controls" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <input type="number" placeholder="Ride ID" value={delayRideId} onChange={e => setDelayRideId(e.target.value)} />
+                                <input type="number" placeholder="Mins delayed" value={delayMins} onChange={e => setDelayMins(e.target.value)} />
+                            </div>
+                            <button className="btn-primary" onClick={handleReportDelay} disabled={isReporting}>
+                                {isReporting ? 'Broadcasting...' : 'Update Status'}
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="elegant-card">
+                        <div className="card-header border-bottom">
+                            <h3>Fleet & Route Management</h3>
+                        </div>
+                        <div className="admin-controls" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <input type="text" placeholder="Train Name" value={trainName} onChange={e => setTrainName(e.target.value)} style={{ flexGrow: 1 }}/>
+                                <input type="number" placeholder="Capacity" value={trainCapacity} onChange={e => setTrainCapacity(e.target.value)} style={{ width: '120px', flexShrink: 0 }}/>
+                                <button className="btn-success" onClick={handleAddTrain} disabled={isLoading} style={{ flexShrink: 0 }}>+ Train</button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <input type="text" placeholder="New Route Name" value={routeName} onChange={e => setRouteName(e.target.value)} style={{ flexGrow: 1 }}/>
+                                <button className="btn-success" onClick={handleAddRoute} disabled={isLoading} style={{ flexShrink: 0 }}>+ Route</button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                                <input type="number" placeholder="Train ID to Remove" value={trainDeleteId} onChange={e => setTrainDeleteId(e.target.value)} style={{ flexGrow: 1 }} />
+                                <button className="btn-primary" style={{backgroundColor: '#e11d48', flexShrink: 0}} onClick={handleDeleteTrain} disabled={isLoading}>Remove Train</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
 
                 <section className="elegant-card">
                     <div className="card-header border-bottom">
-                        <h3>Recent Bookings</h3>
+                        <h3>Recent Bookings Ledger</h3>
                     </div>
                     <div className="table-container">
                         <table className="elegant-table">
@@ -303,9 +371,9 @@ function AdminPortal({ showMsg }) {
                         </table>
                     </div>
                 </section>
+
             </div>
         </div>
     );
 }
-
 export default App;
