@@ -1,8 +1,11 @@
 package repository.interfaces;
 
 import domain.RideSegment;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import java.util.List;
 
-public interface IRideSegmentRepository extends IRepository<Long, RideSegment> {
+@Repository
+public interface IRideSegmentRepository extends JpaRepository<RideSegment, Long> {
     List<RideSegment> findByRideId(Long rideId);
 }
