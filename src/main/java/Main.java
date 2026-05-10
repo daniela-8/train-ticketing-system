@@ -1,4 +1,5 @@
 import config.AppConfig;
+import network.server.ConcurrentServer;
 import service.ITicketingService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -9,8 +10,7 @@ public class Main {
 
         ITicketingService service = context.getBean(ITicketingService.class);
 
-        service.getAllStations().forEach(station ->
-                System.out.println("Found Station: " + station.getName())
-        );
+        ConcurrentServer server = new ConcurrentServer(5555, service);
+        server.start();
     }
 }

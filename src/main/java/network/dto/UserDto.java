@@ -1,4 +1,5 @@
 package network.dto;
 
-public class UserDto {
-}
+import java.io.Serializable;
+
+public record UserDto(Long id, String name, String email, String role) implements Serializable {}

@@ -1,4 +1,5 @@
 package network.dto;
 
-public class TrainDto {
-}
+import java.io.Serializable;
+
+public record TrainDto(Long id, String name, int totalCapacity) implements Serializable {}

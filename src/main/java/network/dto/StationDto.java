@@ -1,4 +1,5 @@
 package network.dto;
 
-public class StationDto {
-}
+import java.io.Serializable;
+
+public record StationDto(Long id, String name) implements Serializable {}
