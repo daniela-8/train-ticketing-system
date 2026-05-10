@@ -83,3 +83,11 @@ INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_sea
 VALUES (1, 3, 2, 100, '2023-12-01 11:15:00', '2023-12-01 14:00:00');
 
 INSERT INTO Users (name, email, role) VALUES ('Test User', 'test@example.com', 'CUSTOMER');
+
+INSERT INTO Rides (train_id, route_id, delay_minutes) VALUES (1, 1, 0);
+
+INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats, departure_time, arrival_time)
+VALUES (2, 2, 3, 100, '2023-12-01 16:00:00', '2023-12-01 19:00:00');
+
+INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats, departure_time, arrival_time)
+VALUES (2, 3, 1, 100, '2023-12-01 19:15:00', '2023-12-01 22:00:00');

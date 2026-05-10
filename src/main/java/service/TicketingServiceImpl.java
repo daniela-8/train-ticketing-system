@@ -108,18 +108,24 @@ public class TicketingServiceImpl implements ITicketingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Ride> findRoutes(Long departureStationId, Long arrivalStationId) throws TicketingException {
+        logger.debug("Searching for routes between station ID {} and {}", departureStationId, arrivalStationId);
+
         List<Ride> allRides = rideRepository.findAll();
 
         return allRides.stream().filter(ride -> {
             List<RideSegment> segments = ride.getSegments();
-            int start = -1, end = -1;
+            int startIndex = -1;
+            int endIndex = -1;
+
             for (int i = 0; i < segments.size(); i++) {
-                if (segments.get(i).getFromStation().getId().equals(departureStationId)) start = i;
-                if (segments.get(i).getToStation().getId().equals(arrivalStationId)) end = i;
+                if (segments.get(i).getFromStation().getId().equals(departureStationId)) startIndex = i;
+                if (segments.get(i).getToStation().getId().equals(arrivalStationId)) endIndex = i;
             }
-            if (start != -1 && end != -1 && start <= end) {
-                for (int i = start; i <= end; i++) {
+
+            if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
+                for (int i = startIndex; i <= endIndex; i++) {
                     if (segments.get(i).getAvailableSeats() <= 0) return false;
                 }
                 return true;

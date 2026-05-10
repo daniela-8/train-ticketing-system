@@ -10,4 +10,4 @@ public record RideSegmentDto(
         LocalDateTime departureTime,
         LocalDateTime arrivalTime,
         int availableSeats
-) implements Serializable {}
+) {}
