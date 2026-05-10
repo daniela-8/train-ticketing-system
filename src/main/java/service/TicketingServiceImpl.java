@@ -2,6 +2,8 @@ package service;
 
 import domain.*;
 import domain.enums.TicketStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import repository.interfaces.*;
@@ -14,6 +16,8 @@ import java.util.stream.StreamSupport;
 @Service
 public class TicketingServiceImpl implements ITicketingService {
 
+    private static final Logger logger = LogManager.getLogger(TicketingServiceImpl.class);
+
     private final UserRepository userRepository;
     private final StationRepository stationRepository;
     private final TrainRepository trainRepository;
@@ -21,7 +25,6 @@ public class TicketingServiceImpl implements ITicketingService {
     private final RideRepository rideRepository;
     private final TicketRepository ticketRepository;
     private final RideSegmentRepository segmentRepository;
-
 
     @Autowired
     public TicketingServiceImpl(UserRepository userRepository, StationRepository stationRepository,
@@ -34,14 +37,19 @@ public class TicketingServiceImpl implements ITicketingService {
         this.rideRepository = rideRepository;
         this.ticketRepository = ticketRepository;
         this.segmentRepository = segmentRepository;
+        logger.info("TicketingServiceImpl initialized with injected repositories.");
     }
 
     @Override
     public User authenticate(String email) throws TicketingException {
+        logger.debug("Attempting to authenticate user with email: {}", email);
         return StreamSupport.stream(userRepository.findAll().spliterator(), false)
                 .filter(u -> u.getEmail().equals(email))
                 .findFirst()
-                .orElseThrow(() -> new TicketingException("User with email " + email + " not found."));
+                .orElseThrow(() -> {
+                    logger.warn("Authentication failed: User with email {} not found.", email);
+                    return new TicketingException("User with email " + email + " not found.");
+                });
     }
 
     @Override
@@ -58,6 +66,7 @@ public class TicketingServiceImpl implements ITicketingService {
 
     @Override
     public Train addTrain(String name, int totalCapacity) {
+        logger.info("Adding new train: {} with capacity {}", name, totalCapacity);
         Train train = new Train(null, name, totalCapacity);
         return trainRepository.save(train);
     }
@@ -69,9 +78,9 @@ public class TicketingServiceImpl implements ITicketingService {
                 .collect(Collectors.toList());
     }
 
-
     @Override
     public Ticket bookTicket(String userEmail, Long rideId, Long departureStationId, Long arrivalStationId, int numberOfSeats) throws TicketingException {
+        logger.info("Booking request: userEmail={}, rideId={}, seats={}", userEmail, rideId, numberOfSeats);
         User customer = authenticate(userEmail);
 
         Ride ride = rideRepository.findOne(rideId)
@@ -79,6 +88,7 @@ public class TicketingServiceImpl implements ITicketingService {
 
         List<RideSegment> allSegments = segmentRepository.findByRideId(rideId);
         if (allSegments.isEmpty()) {
+            logger.error("Booking failed: Ride {} has no scheduled segments.", rideId);
             throw new TicketingException("This ride has no scheduled segments.");
         }
 
@@ -96,14 +106,15 @@ public class TicketingServiceImpl implements ITicketingService {
         }
 
         if (startIndex == -1 || endIndex == -1 || startIndex > endIndex) {
+            logger.warn("Booking failed: Invalid route selected.");
             throw new TicketingException("Invalid route selected. Please check your departure and arrival stations.");
         }
 
         for (int i = startIndex; i <= endIndex; i++) {
             if (allSegments.get(i).getAvailableSeats() < numberOfSeats) {
-                throw new TicketingException("Booking failed: Not enough seats available between " +
-                        allSegments.get(i).getFromStation().getId() + " and " +
-                        allSegments.get(i).getToStation().getId());
+                logger.warn("Booking failed: Overbooking prevented for segment {} to {}.",
+                        allSegments.get(i).getFromStation().getId(), allSegments.get(i).getToStation().getId());
+                throw new TicketingException("Booking failed: Not enough seats available.");
             }
         }
 
@@ -117,19 +128,20 @@ public class TicketingServiceImpl implements ITicketingService {
         Station arrStation = new Station(arrivalStationId, null);
 
         Ticket newTicket = new Ticket(null, customer, ride, depStation, arrStation, numberOfSeats, TicketStatus.CONFIRMED);
+        Ticket savedTicket = ticketRepository.save(newTicket);
 
-        return ticketRepository.save(newTicket);
+        logger.info("Ticket successfully booked with ID: {}", savedTicket.getId());
+        return savedTicket;
     }
 
     @Override
     public List<Ride> findRoutes(Long departureStationId, Long arrivalStationId) throws TicketingException {
+        logger.debug("Searching for routes between station ID {} and {}", departureStationId, arrivalStationId);
         List<Ride> validRides = new java.util.ArrayList<>();
-
         Iterable<Ride> allRides = rideRepository.findAll();
 
         for (Ride ride : allRides) {
             List<RideSegment> segments = segmentRepository.findByRideId(ride.getId());
-
             int startIndex = -1;
             int endIndex = -1;
 
@@ -143,7 +155,6 @@ public class TicketingServiceImpl implements ITicketingService {
             }
 
             if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
-
                 boolean hasCapacity = true;
                 for (int i = startIndex; i <= endIndex; i++) {
                     if (segments.get(i).getAvailableSeats() <= 0) {
@@ -166,14 +177,17 @@ public class TicketingServiceImpl implements ITicketingService {
         }
 
         if (validRides.isEmpty()) {
+            logger.info("No direct routes found between station ID {} and {}", departureStationId, arrivalStationId);
             throw new TicketingException("No direct routes with available seats found between these stations.");
         }
 
+        logger.info("Found {} valid routes.", validRides.size());
         return validRides;
     }
 
     @Override
     public void delayRide(Long rideId, int delayMinutes) throws TicketingException {
+        logger.info("Initiating delay of {} minutes for Ride ID {}", delayMinutes, rideId);
         if (delayMinutes <= 0) {
             throw new TicketingException("Delay minutes must be greater than zero.");
         }
@@ -185,13 +199,11 @@ public class TicketingServiceImpl implements ITicketingService {
         rideRepository.update(ride);
 
         List<RideSegment> segments = segmentRepository.findByRideId(rideId);
-
         for (RideSegment segment : segments) {
-
             segment.setDepartureTime(segment.getDepartureTime().plusMinutes(delayMinutes));
             segment.setArrivalTime(segment.getArrivalTime().plusMinutes(delayMinutes));
-
             segmentRepository.update(segment);
         }
+        logger.info("Delay applied successfully to all segments of Ride ID {}", rideId);
     }
 }

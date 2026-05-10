@@ -2,6 +2,8 @@ package repository.jdbc;
 
 import domain.RideSegment;
 import domain.Station;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import repository.interfaces.IRideSegmentRepository;
@@ -15,23 +17,23 @@ import java.util.Properties;
 
 @Repository
 public class RideSegmentRepository implements IRideSegmentRepository {
+    private static final Logger logger = LogManager.getLogger(RideSegmentRepository.class);
     private JdbcUtils dbUtils;
+
     @Autowired
-
-
     public RideSegmentRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }
 
     @Override
     public RideSegment save(RideSegment entity) {
-        return entity;
+        return entity; // Managed via saveSegmentForRide
     }
 
     public RideSegment saveSegmentForRide(RideSegment entity, Long rideId) {
         try (Connection con = dbUtils.getConnection();
              PreparedStatement preStmt = con.prepareStatement(
-                     "INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats) VALUES (?, ?, ?, ?, ?, ?)",
+                     "INSERT INTO RideSegments (ride_id, from_station_id, to_station_id, available_seats, departure_time, arrival_time) VALUES (?, ?, ?, ?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
 
             preStmt.setLong(1, rideId);
@@ -45,7 +47,9 @@ public class RideSegmentRepository implements IRideSegmentRepository {
             try (ResultSet keys = preStmt.getGeneratedKeys()) {
                 if (keys.next()) entity.setId(keys.getLong(1));
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while saving RideSegment for Ride ID: {}", rideId, ex);
+        }
         return entity;
     }
 
@@ -65,7 +69,9 @@ public class RideSegmentRepository implements IRideSegmentRepository {
                     return Optional.of(new RideSegment(id, from, to, depTime, arrTime, rs.getInt("available_seats")));
                 }
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding RideSegment by ID: {}", id, ex);
+        }
         return Optional.empty();
     }
 
@@ -91,7 +97,9 @@ public class RideSegmentRepository implements IRideSegmentRepository {
                     list.add(new RideSegment(rs.getLong("id"), from, to, depTime, arrTime, rs.getInt("available_seats")));
                 }
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding RideSegments for Ride ID: {}", rideId, ex);
+        }
         return list;
     }
 
@@ -101,18 +109,24 @@ public class RideSegmentRepository implements IRideSegmentRepository {
              PreparedStatement preStmt = con.prepareStatement("DELETE FROM RideSegments WHERE id=?")) {
             preStmt.setLong(1, id);
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while deleting RideSegment with ID: {}", id, ex);
+        }
     }
 
     @Override
     public RideSegment update(RideSegment entity) {
         try (Connection con = dbUtils.getConnection();
              PreparedStatement preStmt = con.prepareStatement(
-                     "UPDATE RideSegments SET available_seats=? WHERE id=?")) {
+                     "UPDATE RideSegments SET available_seats=?, departure_time=?, arrival_time=? WHERE id=?")) {
             preStmt.setInt(1, entity.getAvailableSeats());
-            preStmt.setLong(2, entity.getId());
+            preStmt.setObject(2, entity.getDepartureTime());
+            preStmt.setObject(3, entity.getArrivalTime());
+            preStmt.setLong(4, entity.getId());
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while updating RideSegment with ID: {}", entity.getId(), ex);
+        }
         return entity;
     }
 }

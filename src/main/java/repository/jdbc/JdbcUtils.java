@@ -2,12 +2,15 @@ package repository.jdbc;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
 public class JdbcUtils {
+    private static final Logger logger = LogManager.getLogger(JdbcUtils.class);
     private Properties jdbcProps;
     private static HikariDataSource dataSource;
 
@@ -29,9 +32,9 @@ public class JdbcUtils {
                 config.setConnectionTimeout(30000);
 
                 dataSource = new HikariDataSource(config);
-                System.out.println("HikariCP Connection Pool initialized successfully!");
+                logger.info("HikariCP Connection Pool initialized successfully!");
             } catch (Exception e) {
-                System.err.println("Error initializing connection pool: " + e.getMessage());
+                logger.fatal("Error initializing connection pool: {}", e.getMessage(), e);
             }
         }
     }
@@ -40,7 +43,7 @@ public class JdbcUtils {
         try {
             return dataSource.getConnection();
         } catch (SQLException e) {
-            System.err.println("Error getting connection from pool: " + e);
+            logger.error("Error getting connection from pool", e);
             return null;
         }
     }

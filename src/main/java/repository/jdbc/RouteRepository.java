@@ -1,6 +1,8 @@
 package repository.jdbc;
 
 import domain.Route;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import repository.interfaces.IRouteRepository;
@@ -12,7 +14,9 @@ import java.util.Properties;
 
 @Repository
 public class RouteRepository implements IRouteRepository {
+    private static final Logger logger = LogManager.getLogger(RouteRepository.class);
     private JdbcUtils dbUtils;
+
     @Autowired
     public RouteRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
@@ -27,7 +31,9 @@ public class RouteRepository implements IRouteRepository {
             try (ResultSet keys = preStmt.getGeneratedKeys()) {
                 if (keys.next()) entity.setId(keys.getLong(1));
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while saving Route", ex);
+        }
         return entity;
     }
 
@@ -39,7 +45,9 @@ public class RouteRepository implements IRouteRepository {
             try (ResultSet rs = preStmt.executeQuery()) {
                 if (rs.next()) return Optional.of(new Route(id, rs.getString("name")));
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding Route by ID: {}", id, ex);
+        }
         return Optional.empty();
     }
 
@@ -50,7 +58,9 @@ public class RouteRepository implements IRouteRepository {
         try (PreparedStatement preStmt = con.prepareStatement("SELECT * FROM Routes");
              ResultSet rs = preStmt.executeQuery()) {
             while (rs.next()) list.add(new Route(rs.getLong("id"), rs.getString("name")));
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding all Routes", ex);
+        }
         return list;
     }
 
@@ -60,7 +70,9 @@ public class RouteRepository implements IRouteRepository {
         try (PreparedStatement preStmt = con.prepareStatement("DELETE FROM Routes WHERE id=?")) {
             preStmt.setLong(1, id);
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while deleting Route with ID: {}", id, ex);
+        }
     }
 
     @Override
@@ -70,7 +82,9 @@ public class RouteRepository implements IRouteRepository {
             preStmt.setString(1, entity.getName());
             preStmt.setLong(2, entity.getId());
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while updating Route with ID: {}", entity.getId(), ex);
+        }
         return entity;
     }
 }
