@@ -82,4 +82,18 @@ public class TicketingServiceProxy implements ITicketingService {
     public Ticket bookTicket(String userEmail, Long rideId, Long depId, Long arrId, int seats) throws TicketingException { return null; }
     @Override
     public List<Ride> findRoutes(Long departureStationId, Long arrivalStationId) throws TicketingException { return null; }
+    @Override
+    public void deleteTrain(Long id) {
+        throw new UnsupportedOperationException("Admin operations are only supported via the REST API.");
+    }
+
+    @Override
+    public domain.Route addRoute(String name) {
+        throw new UnsupportedOperationException("Admin operations are only supported via the REST API.");
+    }
+
+    @Override
+    public java.util.List<domain.Ticket> getAllBookings() {
+        throw new UnsupportedOperationException("Admin operations are only supported via the REST API.");
+    }
 }

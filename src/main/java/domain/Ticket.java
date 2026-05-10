@@ -1,17 +1,39 @@
 package domain;
 
 import domain.enums.TicketStatus;
+import jakarta.persistence.*;
 
-import java.util.Objects;
-
-public class Ticket implements Entity<Long> {
+@Entity
+@Table(name = "Tickets")
+public class Ticket {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "customer_id", nullable = false)
     private User customer;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "ride_id", nullable = false)
     private Ride ride;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "departure_station_id", nullable = false)
     private Station departureStation;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "arrival_station_id", nullable = false)
     private Station arrivalStation;
+
+    @Column(name = "number_of_seats", nullable = false)
     private int numberOfSeats;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TicketStatus status;
+
+    public Ticket() {}
 
     public Ticket(Long id, User customer, Ride ride, Station departureStation, Station arrivalStation, int numberOfSeats, TicketStatus status) {
         this.id = id;
@@ -23,39 +45,18 @@ public class Ticket implements Entity<Long> {
         this.status = status;
     }
 
-    @Override
     public Long getId() { return id; }
-    @Override
     public void setId(Long id) { this.id = id; }
-
     public User getCustomer() { return customer; }
     public void setCustomer(User customer) { this.customer = customer; }
-
     public Ride getRide() { return ride; }
     public void setRide(Ride ride) { this.ride = ride; }
-
     public Station getDepartureStation() { return departureStation; }
-    public void setDepartureStation(Station departureStation) { this.departureStation = departureStation; }
-
+    public void setDepartureStation(Station station) { this.departureStation = station; }
     public Station getArrivalStation() { return arrivalStation; }
-    public void setArrivalStation(Station arrivalStation) { this.arrivalStation = arrivalStation; }
-
+    public void setArrivalStation(Station station) { this.arrivalStation = station; }
     public int getNumberOfSeats() { return numberOfSeats; }
-    public void setNumberOfSeats(int numberOfSeats) { this.numberOfSeats = numberOfSeats; }
-
+    public void setNumberOfSeats(int seats) { this.numberOfSeats = seats; }
     public TicketStatus getStatus() { return status; }
     public void setStatus(TicketStatus status) { this.status = status; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Ticket ticket = (Ticket) o;
-        return Objects.equals(id, ticket.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
 }

@@ -1,5 +1,9 @@
 package repository.interfaces;
 
 import domain.Route;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface IRouteRepository extends IRepository<Long, Route> {}
+@Repository
+public interface IRouteRepository extends JpaRepository<Route, Long> {
+}

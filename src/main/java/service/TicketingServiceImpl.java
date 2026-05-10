@@ -7,35 +7,28 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import repository.jdbc.*;
+import repository.interfaces.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class TicketingServiceImpl implements ITicketingService {
 
     private static final Logger logger = LogManager.getLogger(TicketingServiceImpl.class);
 
-    private final UserRepository userRepository;
-    private final StationRepository stationRepository;
-    private final TrainRepository trainRepository;
-    private final RouteRepository routeRepository;
-    private final RideRepository rideRepository;
-    private final TicketRepository ticketRepository;
-    private final RideSegmentRepository segmentRepository;
+    private final IUserRepository userRepository;
+    private final IStationRepository stationRepository;
+    private final ITrainRepository trainRepository;
+    private final IRouteRepository routeRepository;
+    private final IRideRepository rideRepository;
+    private final ITicketRepository ticketRepository;
     private final NotificationService notificationService;
 
     @Autowired
-    public TicketingServiceImpl(UserRepository userRepository,
-                                StationRepository stationRepository,
-                                TrainRepository trainRepository,
-                                RouteRepository routeRepository,
-                                RideRepository rideRepository,
-                                TicketRepository ticketRepository,
-                                RideSegmentRepository segmentRepository,
+    public TicketingServiceImpl(IUserRepository userRepository, IStationRepository stationRepository,
+                                ITrainRepository trainRepository, IRouteRepository routeRepository,
+                                IRideRepository rideRepository, ITicketRepository ticketRepository,
                                 NotificationService notificationService) {
         this.userRepository = userRepository;
         this.stationRepository = stationRepository;
@@ -43,27 +36,24 @@ public class TicketingServiceImpl implements ITicketingService {
         this.routeRepository = routeRepository;
         this.rideRepository = rideRepository;
         this.ticketRepository = ticketRepository;
-        this.segmentRepository = segmentRepository;
         this.notificationService = notificationService;
-        logger.info("TicketingServiceImpl initialized with Advanced Features (Async & Transactions).");
+        logger.info("TicketingServiceImpl initialized with Spring Data JPA.");
     }
 
     @Override
     public User authenticate(String email) throws TicketingException {
-        return StreamSupport.stream(userRepository.findAll().spliterator(), false)
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
-                .orElseThrow(() -> new TicketingException("User not found: " + email));
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new TicketingException("User with email " + email + " not found."));
     }
 
     @Override
     public List<Station> getAllStations() {
-        return StreamSupport.stream(stationRepository.findAll().spliterator(), false).toList();
+        return stationRepository.findAll();
     }
 
     @Override
     public List<Train> getAllTrains() {
-        return StreamSupport.stream(trainRepository.findAll().spliterator(), false).toList();
+        return trainRepository.findAll();
     }
 
     @Override
@@ -73,22 +63,18 @@ public class TicketingServiceImpl implements ITicketingService {
 
     @Override
     public List<Ticket> getBookingsForRide(Long rideId) {
-        return StreamSupport.stream(ticketRepository.findAll().spliterator(), false)
-                .filter(t -> t.getRide().getId().equals(rideId))
-                .collect(Collectors.toList());
+        return ticketRepository.findByRideId(rideId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Ticket bookTicket(String userEmail, Long rideId, Long departureStationId, Long arrivalStationId, int numberOfSeats) throws TicketingException {
-        logger.info("Processing ACID Booking: {} seats for Ride ID {}", numberOfSeats, rideId);
-
         User customer = authenticate(userEmail);
 
-        Ride ride = rideRepository.findOne(rideId)
+        Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new TicketingException("Ride not found."));
 
-        List<RideSegment> allSegments = segmentRepository.findByRideId(rideId);
+        List<RideSegment> allSegments = ride.getSegments();
 
         int startIndex = -1;
         int endIndex = -1;
@@ -100,87 +86,84 @@ public class TicketingServiceImpl implements ITicketingService {
         }
 
         if (startIndex == -1 || endIndex == -1 || startIndex > endIndex) {
-            throw new TicketingException("Invalid route selection.");
-        }
-
-        for (int i = startIndex; i <= endIndex; i++) {
-            if (allSegments.get(i).getAvailableSeats() < numberOfSeats) {
-                logger.warn("Concurrency Block: Not enough seats on segment index {}", i);
-                throw new TicketingException("Booking failed: Seats no longer available.");
-            }
+            throw new TicketingException("Invalid route selected.");
         }
 
         for (int i = startIndex; i <= endIndex; i++) {
             RideSegment segment = allSegments.get(i);
+            if (segment.getAvailableSeats() < numberOfSeats) {
+                throw new TicketingException("Booking failed: Not enough seats available.");
+            }
             segment.setAvailableSeats(segment.getAvailableSeats() - numberOfSeats);
-            segmentRepository.update(segment);
         }
 
-        Station depStation = stationRepository.findOne(departureStationId).orElseThrow();
-        Station arrStation = stationRepository.findOne(arrivalStationId).orElseThrow();
+        Station depStation = stationRepository.findById(departureStationId).orElseThrow();
+        Station arrStation = stationRepository.findById(arrivalStationId).orElseThrow();
 
         Ticket newTicket = new Ticket(null, customer, ride, depStation, arrStation, numberOfSeats, TicketStatus.CONFIRMED);
         Ticket savedTicket = ticketRepository.save(newTicket);
 
         notificationService.sendBookingEmail(userEmail, savedTicket.getId());
-
-        logger.info("Booking transaction committed successfully for Ticket #{}", savedTicket.getId());
         return savedTicket;
     }
 
     @Override
     public List<Ride> findRoutes(Long departureStationId, Long arrivalStationId) throws TicketingException {
-        List<Ride> validRides = new ArrayList<>();
-        Iterable<Ride> allRides = rideRepository.findAll();
+        List<Ride> allRides = rideRepository.findAll();
 
-        for (Ride ride : allRides) {
-            List<RideSegment> segments = segmentRepository.findByRideId(ride.getId());
+        return allRides.stream().filter(ride -> {
+            List<RideSegment> segments = ride.getSegments();
             int start = -1, end = -1;
-
             for (int i = 0; i < segments.size(); i++) {
                 if (segments.get(i).getFromStation().getId().equals(departureStationId)) start = i;
                 if (segments.get(i).getToStation().getId().equals(arrivalStationId)) end = i;
             }
-
             if (start != -1 && end != -1 && start <= end) {
-                boolean available = true;
                 for (int i = start; i <= end; i++) {
-                    if (segments.get(i).getAvailableSeats() <= 0) {
-                        available = false;
-                        break;
-                    }
+                    if (segments.get(i).getAvailableSeats() <= 0) return false;
                 }
-                if (available) {
-                    validRides.add(new Ride(ride.getId(), ride.getTrain(), ride.getRoute(), segments, ride.getDelayMinutes()));
-                }
+                return true;
             }
-        }
-        if (validRides.isEmpty()) throw new TicketingException("No routes found.");
-        return validRides;
+            return false;
+        }).collect(Collectors.toList());
     }
 
-
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public void delayRide(Long rideId, int delayMinutes) throws TicketingException {
-        logger.info("Applying {} min delay to Ride {}", delayMinutes, rideId);
+        logger.info("Admin Action: Applying {} min delay to Ride {}", delayMinutes, rideId);
 
-        Ride ride = rideRepository.findOne(rideId)
+        Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new TicketingException("Ride not found."));
 
         ride.setDelayMinutes(ride.getDelayMinutes() + delayMinutes);
-        rideRepository.update(ride);
 
-        List<RideSegment> segments = segmentRepository.findByRideId(rideId);
-        for (RideSegment segment : segments) {
+        for (RideSegment segment : ride.getSegments()) {
             segment.setDepartureTime(segment.getDepartureTime().plusMinutes(delayMinutes));
             segment.setArrivalTime(segment.getArrivalTime().plusMinutes(delayMinutes));
-            segmentRepository.update(segment);
         }
 
-        List<Ticket> bookings = getBookingsForRide(rideId);
+        List<Ticket> bookings = ticketRepository.findByRideId(rideId);
         for (Ticket t : bookings) {
             notificationService.sendDelayNotification(t.getCustomer().getEmail(), rideId, delayMinutes);
         }
+    }
+
+    @Override
+    public void deleteTrain(Long id) {
+        logger.info("Admin Action: Deleting train ID {}", id);
+        trainRepository.deleteById(id);
+    }
+
+    @Override
+    public Route addRoute(String name) {
+        logger.info("Admin Action: Adding new route: {}", name);
+        return routeRepository.save(new Route(null, name));
+    }
+
+    @Override
+    public List<Ticket> getAllBookings() {
+        logger.info("Admin Action: Fetching all system bookings.");
+        return ticketRepository.findAll();
     }
 }
