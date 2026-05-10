@@ -62,3 +62,9 @@ CREATE TABLE Tickets (
 ALTER TABLE RideSegments
     ADD COLUMN departure_time DATETIME NOT NULL,
     ADD COLUMN arrival_time DATETIME NOT NULL;
+
+INSERT INTO Stations (name) VALUES
+                                ('Cluj-Napoca'),
+                                ('Bucharest'),
+                                ('Brasov'),
+                                ('Timisoara');

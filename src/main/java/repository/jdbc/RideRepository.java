@@ -4,16 +4,23 @@ import domain.Ride;
 import domain.RideSegment;
 import domain.Route;
 import domain.Train;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import repository.interfaces.IRideRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class RideRepository implements IRideRepository {
+    private static final Logger logger = LogManager.getLogger(RideRepository.class);
     private JdbcUtils dbUtils;
 
+    @Autowired
     public RideRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }
@@ -22,7 +29,7 @@ public class RideRepository implements IRideRepository {
     public Ride save(Ride entity) {
         try (Connection con = dbUtils.getConnection();
              PreparedStatement preStmt = con.prepareStatement(
-                "INSERT INTO Rides (train_id, route_id, delay_minutes) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                     "INSERT INTO Rides (train_id, route_id, delay_minutes) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
             preStmt.setLong(1, entity.getTrain().getId());
             preStmt.setLong(2, entity.getRoute().getId());
             preStmt.setInt(3, entity.getDelayMinutes());
@@ -30,7 +37,9 @@ public class RideRepository implements IRideRepository {
             try (ResultSet keys = preStmt.getGeneratedKeys()) {
                 if (keys.next()) entity.setId(keys.getLong(1));
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while saving Ride", ex);
+        }
         return entity;
     }
 
@@ -47,7 +56,9 @@ public class RideRepository implements IRideRepository {
                     return Optional.of(ride);
                 }
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding Ride by ID: {}", id, ex);
+        }
         return Optional.empty();
     }
 
@@ -62,7 +73,9 @@ public class RideRepository implements IRideRepository {
                 Route shallowRoute = new Route(rs.getLong("route_id"), null);
                 list.add(new Ride(rs.getLong("id"), shallowTrain, shallowRoute, new ArrayList<RideSegment>(), rs.getInt("delay_minutes")));
             }
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while finding all Rides", ex);
+        }
         return list;
     }
 
@@ -72,7 +85,9 @@ public class RideRepository implements IRideRepository {
         try (PreparedStatement preStmt = con.prepareStatement("DELETE FROM Rides WHERE id=?")) {
             preStmt.setLong(1, id);
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while deleting Ride with ID: {}", id, ex);
+        }
     }
 
     @Override
@@ -85,7 +100,9 @@ public class RideRepository implements IRideRepository {
             preStmt.setInt(3, entity.getDelayMinutes());
             preStmt.setLong(4, entity.getId());
             preStmt.executeUpdate();
-        } catch (SQLException ex) { System.err.println("Error DB: " + ex); }
+        } catch (SQLException ex) {
+            logger.error("Database error occurred while updating Ride with ID: {}", entity.getId(), ex);
+        }
         return entity;
     }
 }

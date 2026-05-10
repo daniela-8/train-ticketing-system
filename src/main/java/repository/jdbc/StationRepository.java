@@ -1,6 +1,10 @@
 package repository.jdbc;
 
 import domain.Station;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IStationRepository;
 
 import java.sql.*;
@@ -8,9 +12,12 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class StationRepository implements IStationRepository {
+    private static final Logger logger = LogManager.getLogger(StationRepository.class);
     private JdbcUtils dbUtils;
 
+    @Autowired
     public StationRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }
@@ -19,8 +26,8 @@ public class StationRepository implements IStationRepository {
     public Station save(Station entity) {
         try (Connection con = dbUtils.getConnection();
              PreparedStatement preStmt = con.prepareStatement(
-                "INSERT INTO Stations (name) VALUES (?)",
-                Statement.RETURN_GENERATED_KEYS)) {
+                     "INSERT INTO Stations (name) VALUES (?)",
+                     Statement.RETURN_GENERATED_KEYS)) {
 
             preStmt.setString(1, entity.getName());
             preStmt.executeUpdate();
@@ -31,7 +38,7 @@ public class StationRepository implements IStationRepository {
                 }
             }
         } catch (SQLException ex) {
-            System.err.println("Error saving Station: " + ex);
+            logger.error("Database error occurred while saving Station", ex);
         }
         return entity;
     }
@@ -47,7 +54,7 @@ public class StationRepository implements IStationRepository {
                 }
             }
         } catch (SQLException ex) {
-            System.err.println("Error finding Station: " + ex);
+            logger.error("Database error occurred while finding Station by ID: {}", id, ex);
         }
         return Optional.empty();
     }
@@ -63,7 +70,7 @@ public class StationRepository implements IStationRepository {
                 }
             }
         } catch (SQLException ex) {
-            System.err.println("Error finding Station by name: " + ex);
+            logger.error("Database error occurred while finding Station by name: {}", name, ex);
         }
         return Optional.empty();
     }
@@ -78,7 +85,7 @@ public class StationRepository implements IStationRepository {
                 stations.add(new Station(result.getLong("id"), result.getString("name")));
             }
         } catch (SQLException ex) {
-            System.err.println("Error finding all Stations: " + ex);
+            logger.error("Database error occurred while finding all Stations", ex);
         }
         return stations;
     }
@@ -90,7 +97,7 @@ public class StationRepository implements IStationRepository {
             preStmt.setLong(1, id);
             preStmt.executeUpdate();
         } catch (SQLException ex) {
-            System.err.println("Error deleting Station: " + ex);
+            logger.error("Database error occurred while deleting Station with ID: {}", id, ex);
         }
     }
 
@@ -102,7 +109,7 @@ public class StationRepository implements IStationRepository {
             preStmt.setLong(2, entity.getId());
             preStmt.executeUpdate();
         } catch (SQLException ex) {
-            System.err.println("Error updating Station: " + ex);
+            logger.error("Database error occurred while updating Station with ID: {}", entity.getId(), ex);
         }
         return entity;
     }

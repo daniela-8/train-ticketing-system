@@ -2,6 +2,10 @@ package repository.jdbc;
 
 import domain.User;
 import domain.enums.Role;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import repository.interfaces.IUserRepository;
 
 import java.sql.*;
@@ -9,9 +13,12 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 
+@Repository
 public class UserRepository implements IUserRepository {
+    private static final Logger logger = LogManager.getLogger(UserRepository.class);
     private JdbcUtils dbUtils;
 
+    @Autowired
     public UserRepository(Properties props) {
         dbUtils = new JdbcUtils(props);
     }
@@ -35,7 +42,7 @@ public class UserRepository implements IUserRepository {
                 }
             }
         } catch (SQLException ex) {
-            System.err.println("Error saving User to DB: " + ex);
+            logger.error("Database error occurred while saving User", ex);
         }
         return entity;
     }
@@ -54,7 +61,7 @@ public class UserRepository implements IUserRepository {
                 }
             }
         } catch (SQLException ex) {
-            System.err.println("Error finding User: " + ex);
+            logger.error("Database error occurred while finding User by ID: {}", id, ex);
         }
         return Optional.empty();
     }
@@ -73,7 +80,7 @@ public class UserRepository implements IUserRepository {
                 users.add(new User(id, name, email, role));
             }
         } catch (SQLException ex) {
-            System.err.println("Error finding all Users: " + ex);
+            logger.error("Database error occurred while finding all Users", ex);
         }
         return users;
     }
@@ -85,7 +92,7 @@ public class UserRepository implements IUserRepository {
             preStmt.setLong(1, id);
             preStmt.executeUpdate();
         } catch (SQLException ex) {
-            System.err.println("Error deleting User: " + ex);
+            logger.error("Database error occurred while deleting User with ID: {}", id, ex);
         }
     }
 
@@ -100,7 +107,7 @@ public class UserRepository implements IUserRepository {
             preStmt.setLong(4, entity.getId());
             preStmt.executeUpdate();
         } catch (SQLException ex) {
-            System.err.println("Error updating User: " + ex);
+            logger.error("Database error occurred while updating User with ID: {}", entity.getId(), ex);
         }
         return entity;
     }
